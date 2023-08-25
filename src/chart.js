@@ -19,6 +19,8 @@ function getRadialTree(data) {
   var nodeCount = data.length
   var theta = (Math.PI * 2) / nodeCount
   var nodes = []
+  var height = innerRadius*(Math.sqrt(2*(1-Math.cos(theta))))
+  //(Math.sqrt((nodes[1].x-nodes[0].x)**2+(nodes[1].y-nodes[0].y)**2))
 console.log()
   for (let i = 0; i < nodeCount; i++) {
     var nodeTheta = theta * i
@@ -28,18 +30,36 @@ console.log()
     var node = {
       x,
       y,
-      r: innerRadius,
       theta: nodeTheta,
+      r: innerRadius,
+      height,
       data: data[i],
-      value: parseFloat(data[i][valueColName])
+      value: parseFloat(data[i][valueColName]),
     }
     nodes.push(node)
   }
-  return nodes
+  return nodes.sort()
 }
 //draw the chart
 function drawChart(data) {
+  
   var nodes = getRadialTree(data)
+  var nodeValues = nodes.map(d=> d.value)
+  var nodeMax = d3.max(nodeValues)
+  var nodeMin = d3.min(nodeValues)
+
+  //scalelinear
+  const y = d3.scaleLinear()
+  .domain([0, nodeMax])
+  .range([0,nodeMax]);
+
+  //scaleband
+  const z = d3.scaleBand()
+       .paddingInner(0.2)
+       .paddingOuter(0.2)
+
+  console.log(z(10))
+
   console.log(nodes)
   var rects = svg
     .append("g")
@@ -50,13 +70,30 @@ function drawChart(data) {
     .append("rect")
     .attr("x", (d) => d.x)
     .attr("y", (d) => d.y)
-    .attr("width", d=>d.value)
-    .attr("height", 3)
+    .attr("width", d=> y(d.value))
+    .attr("height", d => z.bandwidth()*(d.height))
+   //console.log(Math.sqrt((nodes[1].x-nodes[0].x)**2+(nodes[1].y-nodes[0].y)**2))
   rects
     .attr("transform", function(d){
-      return `rotate(${d.theta * (180 / Math.PI)} ${d.x} ${d.y})`
+      return `rotate(${(d.theta * (180 / Math.PI) + 8)} ${d.x} ${d.y})`
     })
   var dots = d3
     .select(".rects")
     .attr("transform", `translate(${width / 2},${height / 2})`)
+    .on('mouseover',function(event){
+      d3.select(event.target)
+          .transition()
+          .duration(100)
+          .style('opacity', '0.7')
+    })
+    
+    .on('mouseout',function(event){
+        d3.select(event.target)
+            .transition()
+            .duration(100)
+            .style('opacity', '1')
+      })
+      
 }
+
+
